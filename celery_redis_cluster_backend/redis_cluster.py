@@ -5,7 +5,7 @@
 
     Redis cluster result store backend.
 
-    CELERY_REDISCLUSTER_BACKEND_SETTINGS = {
+    CELERY_REDIS_CLUSTER_BACKEND_SETTINGS = {
         startup_nodes: [{"host": "127.0.0.1", "port": "6379"}]
     }
 """
@@ -14,27 +14,23 @@ from __future__ import absolute_import
 from functools import partial
 
 from kombu.utils import cached_property, retry_over_time
-from kombu.utils.url import _parse_url
 
 from celery import states
 from celery.canvas import maybe_signature
 from celery.exceptions import ChordError, ImproperlyConfigured
-from celery.five import string_t
-from celery.utils import deprecated_property, strtobool
-from celery.utils.functional import dictfilter
+from celery.utils import strtobool
 from celery.utils.log import get_logger
 from celery.utils.timeutils import humanize_seconds
 
-from .base import KeyValueStoreBackend
+from celery.backends.base import KeyValueStoreBackend
 
-try:
-    from rediscluster.client import RedisCluster
-    from redis.exceptions import ConnectionError
-    from kombu.transport.redis import get_redis_error_classes
-except ImportError:                 # pragma: no cover
-    RedisCluster = None                    # noqa
-    ConnectionError = None          # noqa
-    get_redis_error_classes = None  # noqa
+#try:
+from rediscluster.client import RedisCluster
+#from kombu.transport.redis import get_redis_error_classes
+#except ImportError:                 # pragma: no cover
+#    RedisCluster = None                    # noqa
+#    ConnectionError = None          # noqa
+get_redis_error_classes = None  # noqa
 
 __all__ = ['RedisClusterBackend']
 
@@ -72,27 +68,30 @@ class RedisClusterBackend(KeyValueStoreBackend):
                 try:
                     return conf[prefix.format(key)]
                 except KeyError:
-                    pass
+                    pass      
 
-        self.conn_params = self.app.conf.get('CELERY_REDISCLUSTER_SETTINGS')
+        self.conn_params = self.app.conf.get('CELERY_REDIS_CLUSTER_SETTINGS', {
+            'startup_nodes': [{'host': _get('HOST') or 'localhost', 'port': _get('PORT') or 6379}]
+        })
 
         if self.conn_params is not None:
             if not isinstance(self.conn_params, dict):
                 raise ImproperlyConfigured(
                     'RedisCluster backend settings should be grouped in a dict')
 
-        if 'startup_nodes' not in self.conn_params:
-            self.conn_params = {
-                'startup_nodes': [{'host': _get('HOST') or 'localhost', 'port': _get('PORT') or 6379}]
-            }
-
         try:
             new_join = strtobool(self.conn_params.pop('new_join'))
+            
+            if new_join:
+                self.apply_chord = self._new_chord_apply
+                self.on_chord_part_return = self._new_chord_return
+
         except KeyError:
             pass
-        if new_join:
-            self.apply_chord = self._new_chord_apply
-            self.on_chord_part_return = self._new_chord_return
+
+        self.connection_errors, self.channel_errors = (
+            get_redis_error_classes() if get_redis_error_classes
+            else ((), ()))
 
     def get(self, key):
         return self.client.get(key)
@@ -120,13 +119,10 @@ class RedisClusterBackend(KeyValueStoreBackend):
         return self.ensure(self._set, (key, value), **retry_policy)
 
     def _set(self, key, value):
-        pipe = self.client.pipeline()
-        if self.expires:
-            pipe.setex(key, value, self.expires)
+        if hasattr(self, 'expires'):
+            self.client.setex(key, value, self.expires)
         else:
-            pipe.set(key, value)
-        pipe.publish(key, value)
-        pipe.execute()
+            self.client.set(key, value)
 
     def delete(self, key):
         self.client.delete(key)
@@ -219,4 +215,25 @@ class RedisClusterBackend(KeyValueStoreBackend):
             (self.conn_params['startup_nodes'], ), {'expires': self.expires},
         )
 
+
+if __name__ == '__main__':
+    from celery import Celery
+
+    class Config:
+        CELERY_ENABLE_UTC = True
+        CELERY_TIMEZONE = 'Europe/Istanbul'
+        CELERY_REDIS_CLUSTER_SETTINGS = { 'startup_nodes': [
+            {"host": "195.175.249.97", "port": "6379"},
+            {"host": "195.175.249.98", "port": "6379"},
+            {"host": "195.175.249.99", "port": "6380"}
+        ]}
+
+    
+    app = Celery()
+    app.config_from_object(Config)
+
+    rb = RedisClusterBackend(app=app)
+    rb.set('a', 'b1')
+
+    print rb.get('a')
 
