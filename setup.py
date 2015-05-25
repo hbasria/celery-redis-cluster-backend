@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-setup(name="celery_redis_cluster_backend",
+setup(name="celery-redis-cluster-backend",
       version='0.1.0',
       description="Celery redis cluster backend",
       license="MIT",

@@ -59,6 +59,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
     def __init__(self, *args, **kwargs):
         super(RedisClusterBackend, self).__init__(expires_type=int, **kwargs)
         conf = self.app.conf
+
         if self.redis is None:
             raise ImproperlyConfigured(REDIS_MISSING)
 
@@ -89,6 +90,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
         except KeyError:
             pass
 
+        self.expires = self.prepare_expires(None, type=int)
         self.connection_errors, self.channel_errors = (
             get_redis_error_classes() if get_redis_error_classes
             else ((), ()))
