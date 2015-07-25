@@ -122,7 +122,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
 
     def _set(self, key, value):
         if hasattr(self, 'expires'):
-            self.client.setex(key, self.expires, value)
+            self.client.setex(key, value, self.expires)
         else:
             self.client.set(key, value)
 
