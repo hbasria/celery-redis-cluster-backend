@@ -42,6 +42,11 @@ logger = get_logger(__name__)
 error = logger.error
 
 
+import logging
+logging.basicConfig(filename='/tmp/celery_debug.log', level=logging.DEBUG)
+log = logging.getLogger(__name__)
+
+
 class RedisClusterBackend(KeyValueStoreBackend):
     """Redis task result store."""
 
@@ -55,6 +60,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
     supports_autoexpire = True
     supports_native_join = True
     implements_incr = True
+    lost_key_counter = 0
 
     def __init__(self, *args, **kwargs):
         super(RedisClusterBackend, self).__init__(expires_type=int, **kwargs)
@@ -96,6 +102,12 @@ class RedisClusterBackend(KeyValueStoreBackend):
             else ((), ()))
 
     def get(self, key):
+        value = self.client.get(key)
+
+        if not value:
+            self.lost_key_counter += 1 
+            log.debug('expected key was not found %s trying %s' % (key, self.lost_key_counter))
+        
         return self.client.get(key)
 
     def mget(self, keys):
@@ -121,12 +133,15 @@ class RedisClusterBackend(KeyValueStoreBackend):
         return self.ensure(self._set, (key, value), **retry_policy)
 
     def _set(self, key, value):
+        log.debug('new key added %s' % key)
+
         if hasattr(self, 'expires'):
             self.client.setex(key, self.expires, value)
         else:
             self.client.set(key, value)
 
     def delete(self, key):
+        log.debug('key deleting %s' % key)
         self.client.delete(key)
 
     def incr(self, key):
@@ -224,11 +239,14 @@ if __name__ == '__main__':
     class Config:
         CELERY_ENABLE_UTC = True
         CELERY_TIMEZONE = 'Europe/Istanbul'
-        CELERY_REDIS_CLUSTER_SETTINGS = { 'startup_nodes': [
-            {"host": "195.175.249.97", "port": "6379"},
-            {"host": "195.175.249.98", "port": "6379"},
-            {"host": "195.175.249.99", "port": "6380"}
-        ]}
+        CELERY_REDIS_CLUSTER_SETTINGS = { 
+            'startup_nodes': [
+                {"host": "localhost", "port": "6379"},
+                {"host": "localhost", "port": "6380"},
+                {"host": "localhost", "port": "6381"}
+            ],
+            'expires': 10800
+        }
 
     
     app = Celery()
