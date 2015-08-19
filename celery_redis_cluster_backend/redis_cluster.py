@@ -106,6 +106,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
 
         if not value:
             self.lost_key_counter += 1 
+            logger.debug('expected key was not found %s trying %s' % (key, self.lost_key_counter))
             log.debug('expected key was not found %s trying %s' % (key, self.lost_key_counter))
         
         return self.client.get(key)
@@ -133,6 +134,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
         return self.ensure(self._set, (key, value), **retry_policy)
 
     def _set(self, key, value):
+        logger.debug('new key added %s' % key)
         log.debug('new key added %s' % key)
 
         if hasattr(self, 'expires'):
@@ -141,6 +143,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
             self.client.set(key, value)
 
     def delete(self, key):
+        logger.debug('key deleting %s' % key)
         log.debug('key deleting %s' % key)
         self.client.delete(key)
 
