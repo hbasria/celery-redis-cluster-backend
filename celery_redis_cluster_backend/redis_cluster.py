@@ -138,7 +138,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
         log.debug('new key added %s' % key)
 
         if hasattr(self, 'expires'):
-            self.client.setex(key, self.expires, value)
+            self.client.setex(key, value, self.expires)
         else:
             self.client.set(key, value)
 
