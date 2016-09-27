@@ -24,10 +24,10 @@ from celery.utils.timeutils import humanize_seconds
 
 from celery.backends.base import KeyValueStoreBackend
 
-#try:
+# try:
 from rediscluster.client import RedisCluster
-#from kombu.transport.redis import get_redis_error_classes
-#except ImportError:                 # pragma: no cover
+# from kombu.transport.redis import get_redis_error_classes
+# except ImportError:                 # pragma: no cover
 #    RedisCluster = None                    # noqa
 #    ConnectionError = None          # noqa
 get_redis_error_classes = None  # noqa
@@ -48,9 +48,9 @@ class RedisClusterBackend(KeyValueStoreBackend):
     #: redis client module.
     redis = RedisCluster
 
-    startup_nodes=None
+    startup_nodes = None
     max_connections = None
-    init_slot_cache=True
+    init_slot_cache = True
 
     supports_autoexpire = True
     supports_native_join = True
@@ -69,7 +69,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
                 try:
                     return conf[prefix.format(key)]
                 except KeyError:
-                    pass      
+                    pass
 
         self.conn_params = self.app.conf.get('CELERY_REDIS_CLUSTER_SETTINGS', {
             'startup_nodes': [{'host': _get('HOST') or 'localhost', 'port': _get('PORT') or 6379}]
@@ -82,7 +82,6 @@ class RedisClusterBackend(KeyValueStoreBackend):
 
         try:
             new_join = strtobool(self.conn_params.pop('new_join'))
-            
             if new_join:
                 self.apply_chord = self._new_chord_apply
                 self.on_chord_part_return = self._new_chord_return
@@ -224,18 +223,15 @@ if __name__ == '__main__':
     class Config:
         CELERY_ENABLE_UTC = True
         CELERY_TIMEZONE = 'Europe/Istanbul'
-        CELERY_REDIS_CLUSTER_SETTINGS = { 'startup_nodes': [
+        CELERY_REDIS_CLUSTER_SETTINGS = {'startup_nodes': [
             {"host": "195.175.249.97", "port": "6379"},
             {"host": "195.175.249.98", "port": "6379"},
             {"host": "195.175.249.99", "port": "6380"}
         ]}
 
-    
     app = Celery()
     app.config_from_object(Config)
 
     rb = RedisClusterBackend(app=app)
     rb.set('a', 'b1')
-
-    print rb.get('a')
-
+    print(rb.get('a'))
