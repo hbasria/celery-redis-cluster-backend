@@ -18,9 +18,9 @@ from kombu.utils import cached_property, retry_over_time
 from celery import states
 from celery.canvas import maybe_signature
 from celery.exceptions import ChordError, ImproperlyConfigured
-from celery.utils import strtobool
+from celery.utils.serialization import strtobool
 from celery.utils.log import get_logger
-from celery.utils.timeutils import humanize_seconds
+from celery.utils.time import humanize_seconds
 
 from celery.backends.base import KeyValueStoreBackend
 
