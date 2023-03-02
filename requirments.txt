@@ -1,0 +1,2 @@
+celery==5.2.7
+redis-py-cluster==2.1.3

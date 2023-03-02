@@ -120,10 +120,10 @@ class RedisClusterBackend(KeyValueStoreBackend):
         return self.ensure(self._set, (key, value), **retry_policy)
 
     def _set(self, key, value):
+        self.client.set(key, value)
+
         if hasattr(self, 'expires'):
-            self.client.setex(key, value, self.expires)
-        else:
-            self.client.set(key, value)
+            self.client.expire(key, self.expires)            
 
     def delete(self, key):
         self.client.delete(key)
@@ -224,14 +224,15 @@ if __name__ == '__main__':
         CELERY_ENABLE_UTC = True
         CELERY_TIMEZONE = 'Europe/Istanbul'
         CELERY_REDIS_CLUSTER_SETTINGS = {'startup_nodes': [
-            {"host": "195.175.249.97", "port": "6379"},
-            {"host": "195.175.249.98", "port": "6379"},
-            {"host": "195.175.249.99", "port": "6380"}
+            {"host": "localhost", "port": "6379"},
+            {"host": "localhost", "port": "6380"},
+            {"host": "localhost", "port": "6381"}
         ]}
 
     app = Celery()
     app.config_from_object(Config)
 
     rb = RedisClusterBackend(app=app)
-    rb.set('a', 'b1')
+    rb.set('a', "deneme")
     print(rb.get('a'))
+    print(rb.get('b'))

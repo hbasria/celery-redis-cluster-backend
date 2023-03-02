@@ -16,3 +16,32 @@ CELERY_REDIS_CLUSTER_SETTINGS = { 'startup_nodes': [
     {"host": "localhost", "port": "6381"}
 ]}
 ```
+
+## example usag
+
+start all containers
+
+```
+docker compose up -d
+```
+
+create and activate python environment 
+
+```
+python -m venv .venv
+source .venv/bin/activate
+```
+
+install all requirements
+
+```
+pip install -r requirments.txt
+pip install .
+```
+
+start celery worker
+
+```
+celery -A example worker -B --loglevel=INFO
+```
+

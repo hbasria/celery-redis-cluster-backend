@@ -1,0 +1,62 @@
+version: '3'
+services:
+  
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+        - 5672:5672
+        - 15672:15672
+
+  redis1:
+    image: redis:7
+    command: redis-server /etc/redis.conf
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis.conf:/etc/redis.conf
+
+  redis2:
+    image: redis:7
+    command: redis-server /etc/redis.conf
+    ports:
+      - 6380:6379
+    volumes:
+      - ./redis.conf:/etc/redis.conf
+
+  redis3:
+    image: redis:7    
+    command: redis-server /etc/redis.conf
+    ports:
+      - 6381:6379
+    volumes:
+      - ./redis.conf:/etc/redis.conf
+
+  redis4:
+    image: redis:7    
+    command: redis-server /etc/redis.conf
+    volumes:
+      - ./redis.conf:/etc/redis.conf
+
+  redis5:
+    image: redis:7    
+    command: redis-server /etc/redis.conf
+    volumes:
+      - ./redis.conf:/etc/redis.conf    
+
+  redis6:
+    image: redis:7    
+    command: redis-server /etc/redis.conf
+    volumes:
+      - ./redis.conf:/etc/redis.conf
+
+  cluster-setup:
+    image: redis:7    
+    depends_on:
+      - redis1
+      - redis2
+      - redis3
+      - redis4
+      - redis5
+      - redis6
+    restart: "no"
+    entrypoint: [ "bash", "-c", "redis-cli --cluster create redis1:6379 redis2:6379 redis3:6379 redis4:6379 redis5:6379 redis6:6379 --cluster-replicas 1 --cluster-yes"]    
