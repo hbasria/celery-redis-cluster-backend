@@ -25,7 +25,7 @@ from celery.utils.time import humanize_seconds
 from celery.backends.base import KeyValueStoreBackend
 
 # try:
-from rediscluster.client import RedisCluster
+import redis
 # from kombu.transport.redis import get_redis_error_classes
 # except ImportError:                 # pragma: no cover
 #    RedisCluster = None                    # noqa
@@ -34,19 +34,12 @@ get_redis_error_classes = None  # noqa
 
 __all__ = ['RedisClusterBackend']
 
-REDIS_MISSING = """\
-You need to install the redis-py-cluster library in order to use \
-the Redis result store backend."""
-
 logger = get_logger(__name__)
 error = logger.error
 
 
 class RedisClusterBackend(KeyValueStoreBackend):
     """Redis task result store."""
-
-    #: redis client module.
-    redis = RedisCluster
 
     startup_nodes = None
     max_connections = None
@@ -59,9 +52,6 @@ class RedisClusterBackend(KeyValueStoreBackend):
     def __init__(self, *args, **kwargs):
         super(RedisClusterBackend, self).__init__(expires_type=int, **kwargs)
         conf = self.app.conf
-
-        if self.redis is None:
-            raise ImproperlyConfigured(REDIS_MISSING)
 
         # For compatibility with the old REDIS_* configuration keys.
         def _get(key):
@@ -209,7 +199,7 @@ class RedisClusterBackend(KeyValueStoreBackend):
 
     @cached_property
     def client(self):
-        return RedisCluster(**self.conn_params)
+        return redis.RedisCluster(**self.conn_params)
 
     def __reduce__(self, args=(), kwargs={}):
         return super(RedisClusterBackend, self).__reduce__(
